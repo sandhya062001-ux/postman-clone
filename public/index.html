@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Request Builder (Node.js Postman Clone)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .app-shell {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      min-height: 100vh;
+    }
+    /* Left Sidebar */
+    .sidebar {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      border-right: 1px solid #1e293b;
+    }
+    .sidebar h2 {
+      margin: 0;
+      font-size: 16px;
+      color: #f8fafc;
+    }
+    .sidebar-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .sidebar-section-header h3 {
+      margin: 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+    }
+    .sidebar button {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 5px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #e2e8f0;
+      cursor: pointer;
+    }
+    .sidebar button:hover { background: #334155; }
+    .history-list, .collections-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 36vh;
+      overflow-y: auto;
+    }
+    .history-item, .collection-req-item {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .history-item:hover, .collection-req-item:hover { border-color: #ea580c; }
+    .history-top { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 3px; }
+    .method-tag {
+      font-weight: 700;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #334155;
+      color: #fb923c;
+    }
+    .url-truncate {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #cbd5e1;
+    }
+    .folder-box {
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 8px;
+      background: #162032;
+    }
+    .folder-title {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #f8fafc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Main Workspace */
+    .main {
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      margin-bottom: 18px;
+    }
+    .top-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    select, input[type="text"], input[type="password"], input[type="number"], textarea, button {
+      font-size: 14px;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-family: inherit;
+    }
+    input:disabled, textarea:disabled {
+      background: #f1f5f9;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+    .url-input { flex: 1; min-width: 240px; }
+    .timeout-wrap { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #475569; }
+    .timeout-wrap input { width: 85px; }
+    button { cursor: pointer; background: #f8fafc; color: #0f172a; }
+    button:hover { background: #e2e8f0; }
+    button.primary { background: #ea580c; color: #fff; border-color: #ea580c; font-weight: 600; padding: 8px 18px; }
+    button.primary:hover { background: #c2410c; }
+    button.cancel-btn { background: #dc2626; color: #fff; border-color: #dc2626; font-weight: 600; }
+    button.cancel-btn:hover { background: #b91c1c; }
+
+    .sub-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 8px 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .tab-btn.active, .resp-tab-btn.active {
+      background: #0f172a;
+      color: #fff;
+      border-color: #0f172a;
+    }
+    .tab-panel, .resp-panel { display: none; }
+    .tab-panel.active, .resp-panel.active { display: block; }
+
+    .kv-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
+    .kv-row input[type="text"], .kv-row input[type="password"] { flex: 1; min-width: 140px; }
+    textarea { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .hidden { display: none; }
+
+    .body-type-bar {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    .body-type-bar label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+
+    .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 12px; font-size: 14px; font-weight: 600; }
+    .status-ok { color: #15803d; }
+    .status-err { color: #b91c1c; }
+
+    .response-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 14px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+      margin: 0;
+      min-height: 90px;
+    }
+
+    .code-gen-box {
+      margin-top: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+    .code-gen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .muted { color: #64748b; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Left Sidebar: Request History & Collections -->
+    <aside class="sidebar">
+      <h2>Postman Clone</h2>
+
+      <div>
+        <div class="sidebar-section-header">
+          <h3>History</h3>
+          <button id="clearHistoryBtn" type="button">Clear</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </div>
+
+      <div>
+        <div class="sidebar-section-header">
+          <h3>Collections</h3>
+          <div>
+            <button id="newFolderBtn" type="button">+ Folder</button>
+            <button id="exportCollectionsBtn" type="button">Export JSON</button>
+          </div>
+        </div>
+        <div id="collectionsList" class="collections-list"></div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main">
+      <div class="card">
+        <div class="sub-toolbar">
+          <div>
+            <label for="envSelect"><strong>Environment:</strong></label>
+            <select id="envSelect"></select>
+            <button id="manageEnvBtn" type="button">Manage Vars</button>
+            <span class="muted">Use <code>{{baseUrl}}</code> in URL, params, headers, auth, or body.</span>
+          </div>
+          <div>
+            <button id="saveToCollectionBtn" type="button">Save to Collection</button>
+            <button id="toggleCodeGenBtn" type="button">Code (cURL / fetch)</button>
+          </div>
+        </div>
+
+        <!-- Environment Variables Editor -->
+        <div id="envEditorPanel" class="code-gen-box hidden" style="margin-bottom: 12px;">
+          <div class="code-gen-header">
+            <strong>Environment Variables (<span id="activeEnvNameLabel">Default</span>)</strong>
+            <div>
+              <button id="addEnvBtn" type="button">+ New Environment</button>
+              <button id="addEnvVarBtn" type="button">+ Add Variable</button>
+              <button id="closeEnvEditorBtn" type="button">Done</button>
+            </div>
+          </div>
+          <div id="envVarsList"></div>
+        </div>
+
+        <!-- Code Generation Panel -->
+        <div id="codeGenPanel" class="code-gen-box hidden" style="margin-bottom: 12px;">
+          <div class="code-gen-header">
+            <div>
+              <button id="codeModeCurlBtn" type="button" class="tab-btn active">cURL</button>
+              <button id="codeModeFetchBtn" type="button" class="tab-btn">JS fetch</button>
+            </div>
+            <div>
+              <button id="copyCodeGenBtn" type="button">Copy Snippet</button>
+              <button id="closeCodeGenBtn" type="button">Close</button>
+            </div>
+          </div>
+          <pre id="codeGenOutput"></pre>
+        </div>
+
+        <!-- Request Bar -->
+        <div class="top-bar">
+          <select id="method">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="PATCH">PATCH</option>
+            <option value="DELETE">DELETE</option>
+            <option value="HEAD">HEAD</option>
+            <option value="OPTIONS">OPTIONS</option>
+          </select>
+          <input id="url" class="url-input" type="text" placeholder="https://jsonplaceholder.typicode.com/posts" />
+          <div class="timeout-wrap">
+            <label for="timeoutInput">Timeout (ms):</label>
+            <input id="timeoutInput" type="number" min="100" max="300000" step="100" value="15000" />
+          </div>
+          <button id="sendBtn" class="primary" type="button">Send</button>
+          <button id="cancelBtn" class="cancel-btn hidden" type="button">Cancel</button>
+        </div>
+
+        <!-- Request Tabs -->
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="params" type="button">Query Params</button>
+          <button class="tab-btn" data-tab="auth" type="button">Authorization</button>
+          <button class="tab-btn" data-tab="headers" type="button">Headers</button>
+          <button class="tab-btn" data-tab="body" type="button">Body</button>
+        </div>
+
+        <!-- Query Params -->
+        <div id="tab-params" class="tab-panel active">
+          <div id="paramsList"></div>
+          <button id="addParamBtn" type="button">+ Add Param</button>
+        </div>
+
+        <!-- Authorization -->
+        <div id="tab-auth" class="tab-panel">
+          <div class="kv-row">
+            <label for="authType">Type:</label>
+            <select id="authType">
+              <option value="none">No Auth</option>
+              <option value="bearer">Bearer Token</option>
+              <option value="basic">Basic Auth</option>
+              <option value="apikey">API Key</option>
+            </select>
+          </div>
+          <div id="auth-bearer" class="auth-fields hidden">
+            <input id="bearerToken" type="text" placeholder="Enter Bearer token" style="width: 100%;" />
+          </div>
+          <div id="auth-basic" class="auth-fields hidden">
+            <div class="kv-row">
+              <input id="basicUser" type="text" placeholder="Username" />
+              <input id="basicPass" type="password" placeholder="Password" />
+            </div>
+          </div>
+          <div id="auth-apikey" class="auth-fields hidden">
+            <div class="kv-row">
+              <input id="apiKeyName" type="text" placeholder="Key (e.g. x-api-key)" />
+              <input id="apiKeyValue" type="text" placeholder="Value" />
+              <select id="apiKeyLocation">
+                <option value="header">Header</option>
+                <option value="query">Query Param</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Headers -->
+        <div id="tab-headers" class="tab-panel">
+          <div id="headersList"></div>
+          <button id="addHeaderBtn" type="button">+ Add Header</button>
+          <p class="muted" id="autoContentTypeHint">Auto Content-Type is determined by the selected Body type unless you override Content-Type here.</p>
+        </div>
+
+        <!-- Body -->
+        <div id="tab-body" class="tab-panel">
+          <div class="body-type-bar">
+            <label><input type="radio" name="bodyType" value="none" /> none</label>
+            <label><input type="radio" name="bodyType" value="raw" checked /> raw JSON</label>
+            <label><input type="radio" name="bodyType" value="form-data" /> form-data</label>
+            <label><input type="radio" name="bodyType" value="x-www-form-urlencoded" /> x-www-form-urlencoded</label>
+          </div>
+
+          <div id="body-none-note" class="muted hidden">No request body will be sent.</div>
+
+          <div id="body-raw-box">
+            <textarea id="bodyInput" rows="7" placeholder='{"title": "foo", "body": "bar", "userId": 1}'></textarea>
+          </div>
+
+          <div id="body-formdata-box" class="hidden">
+            <div id="formDataList"></div>
+            <button id="addFormDataBtn" type="button">+ Add Field</button>
+          </div>
+
+          <div id="body-urlencoded-box" class="hidden">
+            <div id="urlencodedList"></div>
+            <button id="addUrlencodedBtn" type="button">+ Add Field</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response Card -->
+      <div class="card">
+        <h2>Response</h2>
+        <div class="meta">
+          <span id="statusBadge">Status: -</span>
+          <span id="timeBadge">Time: -</span>
+          <span id="sizeBadge">Size: -</span>
+        </div>
+
+        <div class="response-controls">
+          <div class="tabs" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+            <button class="resp-tab-btn active" data-resp-tab="body" type="button">Response Body</button>
+            <button class="resp-tab-btn" data-resp-tab="headers" type="button">Response Headers (<span id="respHeaderCount">0</span>)</button>
+          </div>
+          <div id="bodyFormatToggleGroup">
+            <button id="prettyBtn" class="tab-btn active" type="button">Pretty</button>
+            <button id="rawBtn" class="tab-btn" type="button">Raw</button>
+          </div>
+        </div>
+
+        <div id="resp-tab-body" class="resp-panel active">
+          <pre id="responseBody">Send a request to see the response.</pre>
+        </div>
+
+        <div id="resp-tab-headers" class="resp-panel">
+          <pre id="responseHeaders">{}</pre>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
